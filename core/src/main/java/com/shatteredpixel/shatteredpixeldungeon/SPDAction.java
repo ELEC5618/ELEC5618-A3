@@ -192,6 +192,10 @@ public class SPDAction extends GameAction {
 		//Note that user-entered bindings can override these individually, and that's fine.
 		KeyBindings.addHardBinding( Input.Keys.ALT_RIGHT, SPDAction.NONE );
 		KeyBindings.addHardBinding( Input.Keys.ENTER, SPDAction.NONE );
+
+		//hard binding for desktop screenshots
+		//not bound to a specific game action, see PixelScene
+		KeyBindings.addHardBinding( Input.Keys.S, SPDAction.NONE );
 	}
 
 	//we only save/loads keys which differ from the default configuration.
