@@ -28,7 +28,7 @@ task debug(type: JavaExec) {
     }
 }
 
-// Recycle bin CLI: list / restore deleted save snapshots without launching the game.
+// Recycle bin CLI: list / restore / purge deleted save snapshots without launching the game.
 task listSaves(type: JavaExec) {
     classpath = sourceSets.main.runtimeClasspath
     main = "com.shatteredpixel.shatteredpixeldungeon.desktop.RecycleBinCLI"
@@ -44,6 +44,12 @@ task restoreSave(type: JavaExec) {
         }
         args 'restore', project.property('snapshotId'), project.property('slot')
     }
+}
+
+task purgeSaves(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    main = "com.shatteredpixel.shatteredpixeldungeon.desktop.RecycleBinCLI"
+    args 'purge'
 }
 
 task release(type: Jar) {

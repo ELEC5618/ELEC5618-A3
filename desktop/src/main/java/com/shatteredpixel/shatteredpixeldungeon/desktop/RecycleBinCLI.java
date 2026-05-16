@@ -1,10 +1,11 @@
 /*
- * Standalone command-line tool to list and restore entries archived by
- * SaveRecycleBin. Designed to run from a Gradle task (no libgdx context).
+ * Standalone command-line tool to list, restore and purge entries archived
+ * by SaveRecycleBin. Designed to run from a Gradle task (no libgdx context).
  *
  * Usage:
  *   ./gradlew listSaves
  *   ./gradlew restoreSave -PsnapshotId=<entryName> -Pslot=<n>
+ *   ./gradlew purgeSaves
  */
 package com.shatteredpixel.shatteredpixeldungeon.desktop;
 
@@ -36,6 +37,9 @@ public class RecycleBinCLI {
 			case "restore":
 				if (args.length < 3) { printUsage(); System.exit(1); }
 				doRestore(bin, dataDir, args[1], Integer.parseInt(args[2]));
+				break;
+			case "purge":
+				doPurge(bin);
 				break;
 			default:
 				printUsage();
@@ -82,6 +86,33 @@ public class RecycleBinCLI {
 		System.out.println("Restored " + entryName + " into slot " + slot);
 	}
 
+	private static void doPurge(Path bin) throws IOException {
+		if (!Files.isDirectory(bin)) {
+			System.out.println("Recycle bin is already empty.");
+			return;
+		}
+		int removed = 0;
+		try (Stream<Path> entries = Files.list(bin)) {
+			java.util.List<Path> children = entries.collect(java.util.stream.Collectors.toList());
+			for (Path entry : children) {
+				deleteRecursive(entry);
+				removed++;
+			}
+		}
+		System.out.println("Purged " + removed + " snapshot(s).");
+	}
+
+	private static void deleteRecursive(Path p) throws IOException {
+		if (Files.isDirectory(p)) {
+			try (Stream<Path> children = Files.list(p)) {
+				for (Path c : children.collect(java.util.stream.Collectors.toList())) {
+					deleteRecursive(c);
+				}
+			}
+		}
+		Files.deleteIfExists(p);
+	}
+
 	/** Replicates DesktopLauncher's per-OS data directory layout. */
 	private static Path resolveDataDir() {
 		String os = System.getProperty("os.name").toLowerCase(Locale.ROOT);
@@ -102,5 +133,6 @@ public class RecycleBinCLI {
 		System.out.println("Usage:");
 		System.out.println("  list");
 		System.out.println("  restore <snapshotId> <slot>");
+		System.out.println("  purge");
 	}
 }
