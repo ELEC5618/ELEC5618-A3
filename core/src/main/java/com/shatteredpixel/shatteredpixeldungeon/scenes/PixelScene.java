@@ -21,7 +21,12 @@
 
 package com.shatteredpixel.shatteredpixeldungeon.scenes;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
+import com.badlogic.gdx.files.FileHandle;
+import com.badlogic.gdx.graphics.Pixmap;
+import com.badlogic.gdx.graphics.PixmapIO;
+import com.badlogic.gdx.utils.ScreenUtils;
 import com.shatteredpixel.shatteredpixeldungeon.Assets;
 import com.shatteredpixel.shatteredpixeldungeon.Badges;
 import com.shatteredpixel.shatteredpixeldungeon.SPDSettings;
@@ -34,6 +39,7 @@ import com.shatteredpixel.shatteredpixeldungeon.ui.Window;
 import com.shatteredpixel.shatteredpixeldungeon.utils.Holiday;
 import com.shatteredpixel.shatteredpixeldungeon.windows.WndJournal;
 import com.watabou.gltextures.TextureCache;
+import com.watabou.gltextures.SmartTexture;
 import com.watabou.glwrap.Blending;
 import com.watabou.input.ControllerHandler;
 import com.watabou.input.KeyEvent;
@@ -47,6 +53,9 @@ import com.watabou.noosa.Gizmo;
 import com.watabou.noosa.Image;
 import com.watabou.noosa.Scene;
 import com.watabou.noosa.Visual;
+import com.watabou.noosa.audio.Sample;
+import com.watabou.noosa.tweeners.Delayer;
+import com.watabou.noosa.tweeners.Tweener;
 import com.watabou.noosa.ui.Component;
 import com.watabou.noosa.ui.Cursor;
 import com.watabou.utils.Callback;
@@ -56,7 +65,11 @@ import com.watabou.utils.PointF;
 import com.watabou.utils.Reflection;
 import com.watabou.utils.Signal;
 
+import java.io.File;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.Locale;
 
 public class PixelScene extends Scene {
 
@@ -89,6 +102,7 @@ public class PixelScene extends Scene {
 	protected boolean inGameScene = false;
 
 	private Signal.Listener<KeyEvent> fullscreenListener;
+	private Signal.Listener<KeyEvent> screenshotListener;
 
 	@Override
 	public void create() {
@@ -195,6 +209,18 @@ public class PixelScene extends Scene {
 						return true;
 					}
 
+					return false;
+				}
+			});
+		}
+		if (DeviceCompat.isDesktop() && screenshotListener == null){
+			KeyEvent.addKeyListener(screenshotListener = new Signal.Listener<KeyEvent>() {
+				@Override
+				public boolean onSignal(KeyEvent keyEvent) {
+					if (keyEvent.code == Input.Keys.S && keyEvent.pressed && ctrlPressed()){
+						captureScreenshot();
+						return true;
+					}
 					return false;
 				}
 			});
@@ -309,8 +335,119 @@ public class PixelScene extends Scene {
 		if (fullscreenListener != null){
 			KeyEvent.removeKeyListener(fullscreenListener);
 		}
+		if (screenshotListener != null){
+			KeyEvent.removeKeyListener(screenshotListener);
+		}
 		if (cursor != null){
 			cursor.destroy();
+		}
+	}
+
+	private void captureScreenshot(){
+		try {
+			Pixmap screenshot = flipY(ScreenUtils.getFrameBufferPixmap(0, 0, Gdx.graphics.getBackBufferWidth(), Gdx.graphics.getBackBufferHeight()));
+			FileHandle file = new FileHandle(nextScreenshotFile());
+			PixmapIO.writePNG(file, screenshot);
+			Sample.INSTANCE.play(Assets.Sounds.CLICK, 1f, 1.2f);
+			showScreenshotPreview(screenshot);
+		} catch (Exception e){
+			Game.reportException(e);
+		}
+	}
+
+	private boolean ctrlPressed(){
+		return Gdx.input.isKeyPressed(Input.Keys.CONTROL_LEFT)
+				|| Gdx.input.isKeyPressed(Input.Keys.CONTROL_RIGHT);
+	}
+
+	private File nextScreenshotFile(){
+		File desktop = new File(System.getProperty("user.home"), "Desktop");
+		if (!desktop.exists() && !desktop.mkdirs()){
+			desktop = new File(System.getProperty("user.home"));
+		}
+
+		String timestamp = new SimpleDateFormat("yyyyMMdd-HHmmss", Locale.ROOT).format(new Date());
+		File file = new File(desktop, "shattered-pixel-dungeon-" + timestamp + ".png");
+		int suffix = 1;
+		while (file.exists()){
+			file = new File(desktop, "shattered-pixel-dungeon-" + timestamp + "-" + suffix + ".png");
+			suffix++;
+		}
+		return file;
+	}
+
+	private Pixmap flipY(Pixmap src){
+		Pixmap flipped = new Pixmap(src.getWidth(), src.getHeight(), src.getFormat());
+		for (int y = 0; y < src.getHeight(); y++){
+			flipped.drawPixmap(src, 0, y, 0, src.getHeight() - y - 1, src.getWidth(), 1);
+		}
+		src.dispose();
+		return flipped;
+	}
+
+	private void showScreenshotPreview(Pixmap screenshot){
+		Image preview = new Image(new SmartTexture(screenshot));
+		preview.camera = uiCamera;
+
+		float maxWidth = Math.min(uiCamera.width * 0.25f, 120);
+		float maxHeight = Math.min(uiCamera.height * 0.25f, 80);
+		float scale = Math.min(maxWidth / preview.width, maxHeight / preview.height);
+		preview.scale.set(scale, scale);
+
+		float borderSize = 2;
+		float margin = 6;
+		ColorBlock border = new ColorBlock(preview.width() + borderSize * 2, preview.height() + borderSize * 2, 0xFFFFFFFF);
+		border.camera = uiCamera;
+		border.x = align(uiCamera, uiCamera.width - border.width() - margin);
+		border.y = align(uiCamera, uiCamera.height - border.height() - margin);
+		preview.x = align(uiCamera, border.x + borderSize);
+		preview.y = align(uiCamera, border.y + borderSize);
+		addToFront(border);
+		addToFront(preview);
+
+		add(new Delayer(3f){
+			@Override
+			protected void onComplete() {
+				Tweener slide = new ScreenshotPreviewTweener(border, preview, uiCamera.width + margin, 0.45f);
+				slide.listener = new Tweener.Listener() {
+					@Override
+					public void onComplete(Tweener tweener) {
+						border.killAndErase();
+						preview.killAndErase();
+						if (preview.texture != null){
+							preview.texture.delete();
+							preview.texture = null;
+						}
+					}
+				};
+				add(slide);
+			}
+		});
+	}
+
+	private static class ScreenshotPreviewTweener extends Tweener {
+
+		private final ColorBlock border;
+		private final Image preview;
+		private final float borderStartX;
+		private final float previewStartX;
+		private final float borderEndX;
+		private final float previewEndX;
+
+		public ScreenshotPreviewTweener(ColorBlock border, Image preview, float borderEndX, float time) {
+			super(preview, time);
+			this.border = border;
+			this.preview = preview;
+			this.borderStartX = border.x;
+			this.previewStartX = preview.x;
+			this.borderEndX = borderEndX;
+			this.previewEndX = borderEndX + (preview.x - border.x);
+		}
+
+		@Override
+		protected void updateValues(float progress) {
+			border.x = borderStartX + (borderEndX - borderStartX) * progress;
+			preview.x = previewStartX + (previewEndX - previewStartX) * progress;
 		}
 	}
 
