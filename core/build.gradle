@@ -6,4 +6,29 @@ sourceCompatibility = targetCompatibility = appJavaCompatibility
 dependencies {
     api project(':SPD-classes')
     implementation project(':services')
+
+    // SQA: unit testing dependencies for SaveRecycleBin
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation "com.badlogicgames.gdx:gdx-backend-headless:$gdxVersion"
+    testImplementation "com.badlogicgames.gdx:gdx:$gdxVersion"
+    testImplementation "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop"
+}
+
+// Tests need the game's i18n bundle resources on the classpath so that
+// Messages.<clinit> (transitively invoked by GamesInProgress.gameFolder)
+// can resolve message bundles. Point the test source set's resources at
+// the assets folder used by the desktop runtime.
+sourceSets {
+    test {
+        resources {
+            srcDirs += [file('src/main/assets')]
+        }
+    }
+}
+
+test {
+    useJUnit()
+    testLogging {
+        events 'passed', 'skipped', 'failed'
+    }
 }

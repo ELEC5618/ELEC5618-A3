@@ -28,6 +28,30 @@ task debug(type: JavaExec) {
     }
 }
 
+// Recycle bin CLI: list / restore / purge deleted save snapshots without launching the game.
+task listSaves(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    main = "com.shatteredpixel.shatteredpixeldungeon.desktop.RecycleBinCLI"
+    args 'list'
+}
+
+task restoreSave(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    main = "com.shatteredpixel.shatteredpixeldungeon.desktop.RecycleBinCLI"
+    doFirst {
+        if (!project.hasProperty('snapshotId') || !project.hasProperty('slot')) {
+            throw new GradleException("Usage: ./gradlew restoreSave -PsnapshotId=<id> -Pslot=<n>")
+        }
+        args 'restore', project.property('snapshotId'), project.property('slot')
+    }
+}
+
+task purgeSaves(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    main = "com.shatteredpixel.shatteredpixeldungeon.desktop.RecycleBinCLI"
+    args 'purge'
+}
+
 task release(type: Jar) {
     //FIXME this is now needed as of gradle 7.0, due to our weird sourceSets setup. Should see if there's a better way to do this
     setDuplicatesStrategy(DuplicatesStrategy.EXCLUDE)

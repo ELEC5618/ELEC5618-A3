@@ -86,6 +86,7 @@ import com.watabou.utils.FileUtils;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
 import com.watabou.utils.SparseArray;
+import com.shatteredpixel.shatteredpixeldungeon.utils.SaveRecycleBin;
 
 import java.io.IOException;
 import java.text.DateFormat;
@@ -833,6 +834,10 @@ public class Dungeon {
 	}
 	
 	public static void deleteGame( int save, boolean deleteLevels ) {
+
+		// Archive the save folder into the recycle bin before destroying it,
+		// so the player can recover recently deleted saves. (ISO 25010: Recoverability)
+		SaveRecycleBin.archive( save );
 
 		if (deleteLevels) {
 			String folder = GamesInProgress.gameFolder(save);
