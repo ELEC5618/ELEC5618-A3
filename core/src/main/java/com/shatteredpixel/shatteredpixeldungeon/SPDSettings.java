@@ -57,6 +57,7 @@ public class SPDSettings extends GameSettings {
 	public static final String KEY_GRID 	    = "visual_grid";
 	public static final String KEY_CAMERA_FOLLOW= "camera_follow";
 	public static final String KEY_SCREEN_SHAKE = "screen_shake";
+	public static final String KEY_ENEMY_VISION = "enemy_vision_highlight";
 	
 	public static void fullscreen( boolean value ) {
 		put( KEY_FULLSCREEN, value );
@@ -132,6 +133,15 @@ public class SPDSettings extends GameSettings {
 
 	public static int screenShake() {
 		return getInt( KEY_SCREEN_SHAKE, 2, 0, 4 );
+	}
+
+	public static void enemyVisionHighlight( boolean value ){
+		put( KEY_ENEMY_VISION, value );
+		GameScene.updateEnemyVision();
+	}
+
+	public static boolean enemyVisionHighlight(){
+		return getBoolean( KEY_ENEMY_VISION, false );
 	}
 	
 	//Interface

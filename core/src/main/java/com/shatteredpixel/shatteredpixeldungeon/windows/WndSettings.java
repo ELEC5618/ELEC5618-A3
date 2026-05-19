@@ -228,6 +228,7 @@ public class WndSettings extends WndTabbed {
 		OptionSlider optVisGrid;
 		OptionSlider optFollowIntensity;
 		OptionSlider optScreenShake;
+		CheckBox chkEnemyVision;
 
 		@Override
 		protected void createChildren() {
@@ -346,6 +347,16 @@ public class WndSettings extends WndTabbed {
 			optScreenShake.setSelectedValue(SPDSettings.screenShake());
 			add(optScreenShake);
 
+			chkEnemyVision = new CheckBox(Messages.get(this, "enemy_vision")) {
+				@Override
+				protected void onClick() {
+					super.onClick();
+					SPDSettings.enemyVisionHighlight(checked());
+				}
+			};
+			chkEnemyVision.checked(SPDSettings.enemyVisionHighlight());
+			add(chkEnemyVision);
+
 		}
 
 		@Override
@@ -401,7 +412,9 @@ public class WndSettings extends WndTabbed {
 				optScreenShake.setRect(0, optFollowIntensity.bottom() + GAP, width, SLIDER_HEIGHT);
 			}
 
-			height = optScreenShake.bottom();
+			chkEnemyVision.setRect(0, optScreenShake.bottom() + GAP, width, BTN_HEIGHT);
+
+			height = chkEnemyVision.bottom();
 		}
 
 	}

@@ -82,6 +82,7 @@ import com.shatteredpixel.shatteredpixeldungeon.tiles.CustomTilemap;
 import com.shatteredpixel.shatteredpixeldungeon.tiles.DungeonTerrainTilemap;
 import com.shatteredpixel.shatteredpixeldungeon.tiles.DungeonTileSheet;
 import com.shatteredpixel.shatteredpixeldungeon.tiles.DungeonTilemap;
+import com.shatteredpixel.shatteredpixeldungeon.tiles.EnemyVisionOverlay;
 import com.shatteredpixel.shatteredpixeldungeon.tiles.DungeonWallsTilemap;
 import com.shatteredpixel.shatteredpixeldungeon.tiles.FogOfWar;
 import com.shatteredpixel.shatteredpixeldungeon.tiles.GridTileMap;
@@ -162,6 +163,7 @@ public class GameScene extends PixelScene {
 	private DungeonWallsTilemap walls;
 	private WallBlockingTilemap wallBlocking;
 	private FogOfWar fog;
+	private EnemyVisionOverlay enemyVisionOverlay;
 	private HeroSprite hero;
 
 	private MenuPane menu;
@@ -342,6 +344,9 @@ public class GameScene extends PixelScene {
 
 		fog = new FogOfWar( Dungeon.level.width(), Dungeon.level.height() );
 		add( fog );
+
+		enemyVisionOverlay = new EnemyVisionOverlay( Dungeon.level.width(), Dungeon.level.height() );
+		add( enemyVisionOverlay );
 
 		spells = new Group();
 		add( spells );
@@ -1329,7 +1334,18 @@ public class GameScene extends PixelScene {
 			scene.wallBlocking.updateArea( cell, radius );
 		}
 	}
-	
+
+	/**
+	 * Schedules a redraw of the enemy-vision danger-zone overlay.
+	 * Called whenever the setting is toggled or the hero observes
+	 * a new section of the level (via {@link #afterObserve()}).
+	 */
+	public static void updateEnemyVision() {
+		if (scene != null && scene.enemyVisionOverlay != null) {
+			scene.enemyVisionOverlay.markDirty();
+		}
+	}
+
 	public static void afterObserve() {
 		if (scene != null) {
 			for (Mob mob : Dungeon.level.mobs.toArray(new Mob[0])) {
@@ -1347,6 +1363,8 @@ public class GameScene extends PixelScene {
 					}
 				}
 			}
+			// Refresh the enemy-vision danger-zone overlay after each observe cycle
+			updateEnemyVision();
 		}
 	}
 
